@@ -31,8 +31,22 @@ ARCH="$(uname -m)"
 
 echo -e "${BLUE}Platform: ${OS} ${ARCH}${NC}"
 
-# Initialize compose files array
-COMPOSE_FILES=("-f" "docker-compose.yml")
+# Initialize compose files array - check if user specified custom compose files
+USER_SPECIFIED_COMPOSE=false
+COMPOSE_FILES=()
+
+# Check if user specified their own compose files
+for arg in "$@"; do
+    if [[ "$arg" == "-f" ]]; then
+        USER_SPECIFIED_COMPOSE=true
+        break
+    fi
+done
+
+# If user didn't specify compose files, use defaults
+if [[ "$USER_SPECIFIED_COMPOSE" == "false" ]]; then
+    COMPOSE_FILES=("-f" "docker-compose.yml")
+fi
 
 # Platform-specific GPU detection
 case "${OS}" in
@@ -45,12 +59,15 @@ case "${OS}" in
             echo -e "${GREEN}🎮 NVIDIA GPU detected!${NC}"
             nvidia-smi --query-gpu=name --format=csv,noheader
             
-            # Check if Docker supports nvidia runtime
-            if docker info 2>/dev/null | grep -i "runtimes" | grep -q "nvidia"; then
-                echo -e "${GREEN}✅ NVIDIA Docker runtime available${NC}"
-                COMPOSE_FILES+=("-f" "docker-compose.gpu.yml")
+            # Check if nvidia-container-runtime is available
+            if command -v nvidia-container-runtime &> /dev/null; then
+                echo -e "${GREEN}✅ NVIDIA Container runtime available${NC}"
+                # Only add GPU compose file if user didn't specify their own files
+                if [[ "$USER_SPECIFIED_COMPOSE" == "false" ]]; then
+                    COMPOSE_FILES+=("-f" "docker-compose.gpu.yml")
+                fi
             else
-                echo -e "${YELLOW}⚠️  NVIDIA Docker runtime not detected. Install nvidia-container-toolkit for GPU support.${NC}"
+                echo -e "${YELLOW}⚠️  NVIDIA Container runtime not detected. Install nvidia-container-toolkit for GPU support.${NC}"
             fi
         else
             echo -e "${YELLOW}ℹ️  No NVIDIA GPU detected, using CPU${NC}"
@@ -65,7 +82,10 @@ case "${OS}" in
             echo -e "${BLUE}🔧 Apple Silicon (${ARCH}) detected${NC}"
             echo -e "${YELLOW}ℹ️  Note: Docker Desktop on macOS does not support direct GPU access${NC}"
             echo -e "${YELLOW}ℹ️  GPU acceleration is not available through Docker containers${NC}"
-            COMPOSE_FILES+=("-f" "docker-compose.mps.yml")
+            # Only add MPS compose file if user didn't specify their own files
+            if [[ "$USER_SPECIFIED_COMPOSE" == "false" ]]; then
+                COMPOSE_FILES+=("-f" "docker-compose.mps.yml")
+            fi
             
         else
             echo -e "${BLUE}💻 Intel Mac detected${NC}"
@@ -95,6 +115,20 @@ for file in "${COMPOSE_FILES[@]}"; do
     fi
 done
 
+# Check if 'up' command is needed
+ADD_UP_COMMAND=true
+for arg in "$@"; do
+    # If any argument looks like a docker compose command, don't add 'up'
+    if [[ "$arg" == "up" ]] || [[ "$arg" == "down" ]] || [[ "$arg" == "logs" ]] || [[ "$arg" == "ps" ]] || [[ "$arg" == "restart" ]] || [[ "$arg" == "stop" ]] || [[ "$arg" == "start" ]] || [[ "$arg" == "build" ]] || [[ "$arg" == "pull" ]]; then
+        ADD_UP_COMMAND=false
+        break
+    fi
+done
+
 # Execute docker compose with detected configuration
 echo -e "${GREEN}🚀 Starting services...${NC}"
-exec docker compose "${COMPOSE_FILES[@]}" "$@"
+if [[ "$ADD_UP_COMMAND" == "true" ]]; then
+    exec docker compose "${COMPOSE_FILES[@]}" "$@" up
+else
+    exec docker compose "${COMPOSE_FILES[@]}" "$@"
+fi
