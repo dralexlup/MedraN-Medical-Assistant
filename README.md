@@ -28,6 +28,7 @@ A powerful, self-hosted medical AI assistant designed for healthcare professiona
 
 - **Docker** and **Docker Compose** installed
 - **4GB+ RAM** recommended for optimal performance
+- **NVIDIA Container Toolkit** (for GPU acceleration on Linux)
 - **Local LLM Server** (LM Studio, Ollama, or similar) running on port 1234
   - **OR** use our **containerized LM Studio** (see Containerized Setup below)
 
@@ -37,16 +38,59 @@ A powerful, self-hosted medical AI assistant designed for healthcare professiona
 git clone https://github.com/dralexlup/MedraN-Medical-Assistant.git
 cd MedraN-Medical-Assistant
 
-# 🎆 SUPER EASY: One-command setup (Recommended for beginners)
-./quick-start.sh
+# 🎆 SUPER EASY: Smart Docker launcher with automatic GPU detection
+./docker-start.sh
 
-# OR Manual setup options:
+# OR specific setups:
 # Option A: Use external LLM server (LM Studio, Ollama, etc.)
-docker compose up --build -d
+./docker-start.sh  # Automatically detects GPU and adds appropriate compose files
 
 # Option B: Use containerized LM Studio with Google Gemma 3n-E4B (RECOMMENDED)
-docker-compose -f docker-compose.lmstudio.yml up --build -d
+./docker-start.sh -f docker-compose.lmstudio.yml  # Works with manual GPU compose files too
+
+# Manual docker compose (if you prefer):
+docker compose up --build -d
 ```
+
+## 🚀 Smart Docker Launcher
+
+The `./docker-start.sh` script provides intelligent platform and GPU detection with automatic compose file selection:
+
+### ✨ Features
+- **🔍 Automatic GPU Detection**: Detects NVIDIA GPUs and NVIDIA Container Toolkit
+- **🎯 Smart Compose Files**: Automatically adds appropriate GPU compose files when available
+- **🤖 Command Auto-completion**: Adds `up` command when not explicitly provided
+- **🎛️ User Control**: Respects user-specified compose files with `-f` flags
+- **🌐 Cross-platform**: Works on Linux, macOS, and Windows
+
+### 📖 Usage Examples
+
+```bash
+# Basic usage - Auto-detects GPU and starts default services
+./docker-start.sh
+
+# Containerized LM Studio - Uses only specified files
+./docker-start.sh -f docker-compose.lmstudio.yml
+
+# Multiple compose files - User has full control
+./docker-start.sh -f docker-compose.yml -f docker-compose.lmstudio.yml -f docker-compose.gpu.yml
+
+# With explicit docker compose commands
+./docker-start.sh ps              # Show running services
+./docker-start.sh logs -f api     # Follow API logs
+./docker-start.sh down            # Stop all services
+```
+
+### 🔧 How it Works
+
+1. **Platform Detection**: Identifies Linux, macOS, or Windows
+2. **GPU Detection**: 
+   - **Linux**: Checks for `nvidia-smi` and `nvidia-container-runtime`
+   - **macOS**: Detects Apple Silicon for MPS support
+3. **Compose File Logic**:
+   - **No `-f` specified**: Uses `docker-compose.yml` + GPU files if available
+   - **User specifies `-f`**: Respects user choice, doesn't auto-add files
+4. **Command Handling**: Adds `up` unless explicit command provided (`ps`, `down`, `logs`, etc.)
 
 ### 2. Access the System
 
@@ -151,7 +195,7 @@ docker-compose -f docker-compose.lmstudio.yml up --build -d
 - ✅ **macOS Apple Silicon** (M1/M2/M3) - CPU optimized
 - ✅ **macOS Intel** - CPU optimized  
 - ✅ **Linux ARM64** - CPU optimized
-- ✅ **Linux x86_64** - CPU optimized (GPU support coming soon)
+- ✅ **Linux x86_64** - CPU + GPU optimized (CUDA support with auto-detection)
 - ✅ **Windows** - Via Docker Desktop
 
 #### 🔧 Benefits:
@@ -304,6 +348,12 @@ api:
 5. **Slow document processing**
    - GPU acceleration now automatic when available
    - OCR processing is CPU-intensive on CPU-only systems
+
+6. **Docker-start.sh script issues**
+   - **"NVIDIA Docker runtime not detected"**: Install `nvidia-container-toolkit` package
+   - **"Usage: docker compose [OPTIONS] COMMAND"**: Use the fixed version with automatic `up` command
+   - **"service has neither an image nor a build context"**: Make sure to specify compose files correctly with `-f`
+   - **Permission denied**: Add your user to the `docker` group: `sudo usermod -aG docker $USER`
 
 ### Logs
 
