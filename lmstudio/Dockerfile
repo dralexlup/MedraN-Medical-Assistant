@@ -1,6 +1,6 @@
 # LM Studio containerized service
-# Based on Ubuntu with optional CUDA support for GPU acceleration
-FROM ubuntu:22.04
+# Based on NVIDIA CUDA with GPU acceleration support
+FROM nvidia/cuda:12.9.0-devel-ubuntu22.04
 
 # Avoid interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     git \
     build-essential \
     cmake \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install LM Studio CLI
@@ -22,13 +23,22 @@ RUN apt-get update && apt-get install -y \
 # 2. Or use a compatible OpenAI API server like llama.cpp server or vllm
 # For now, we'll use llama.cpp server as a drop-in replacement
 
-# Install llama.cpp with cross-platform support
+# Install llama.cpp with CUDA support
 WORKDIR /opt
+# Set up CUDA environment for linking
+ENV CUDA_HOME=/usr/local/cuda
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64/stubs:/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+ENV LIBRARY_PATH=/usr/local/cuda/lib64/stubs:/usr/local/cuda/lib64:$LIBRARY_PATH
 RUN git clone https://github.com/ggerganov/llama.cpp.git && \
     cd llama.cpp && \
     mkdir build && \
     cd build && \
-    cmake -DGGML_BACKEND_FALLBACK=OFF .. && \
+    cmake -DGGML_CUDA=ON \
+          -DCUDA_ARCHITECTURES="80;86;89;90" \
+          -DGGML_BACKEND_FALLBACK=OFF \
+          -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++ \
+          -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -lcuda" \
+          .. && \
     cmake --build . --config Release -j$(nproc) -t llama-server
 
 # Create a models directory

@@ -643,15 +643,23 @@
                 if (type === 'audio') {
                     const audioUrl = URL.createObjectURL(file);
                     content += `
-                        <div style="margin-top: 12px;">
-                            <audio controls style="width: 100%; max-width: 300px;">
+                        <div style="margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 12px; border: 2px solid var(--success);">
+                            <p style="margin-bottom: 12px; font-weight: 600; color: var(--success);">
+                                <i class="fas fa-volume-up"></i> Audio Preview:
+                            </p>
+                            <audio controls preload="auto" style="width: 100%; max-width: 400px; margin-bottom: 8px; filter: hue-rotate(200deg) brightness(1.2);">
                                 <source src="${audioUrl}" type="${file.type}">
                                 Your browser does not support the audio element.
                             </audio>
+                            <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
+                                <button class="btn btn-secondary" onclick="playAudio(this)" style="font-size: 0.9rem; padding: 8px 12px;">
+                                    <i class="fas fa-play"></i> Quick Play
+                                </button>
+                                <small style="color: var(--text-secondary);">
+                                    🎧 Listen to verify before transcription
+                                </small>
+                            </div>
                         </div>
-                        <small style="color: var(--text-secondary); margin-top: 8px; display: block;">
-                            🎧 Listen to verify before transcription
-                        </small>
                     `;
                 }
                 
@@ -946,6 +954,30 @@
             element.style.display = 'block';
             element.className = `result ${type}`;
             element.innerHTML = message;
+        }
+
+        function playAudio(button) {
+            // Find the audio element in the same container
+            const audioElement = button.closest('div').querySelector('audio');
+            if (audioElement) {
+                const icon = button.querySelector('i');
+                
+                if (audioElement.paused) {
+                    audioElement.play();
+                    icon.className = 'fas fa-pause';
+                    button.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                } else {
+                    audioElement.pause();
+                    icon.className = 'fas fa-play';
+                    button.innerHTML = '<i class="fas fa-play"></i> Quick Play';
+                }
+
+                // Reset button when audio ends
+                audioElement.onended = function() {
+                    icon.className = 'fas fa-play';
+                    button.innerHTML = '<i class="fas fa-play"></i> Quick Play';
+                };
+            }
         }
     </script>
 </body>

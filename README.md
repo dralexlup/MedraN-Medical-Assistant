@@ -24,33 +24,59 @@ A powerful, self-hosted medical AI assistant designed for healthcare professiona
 
 ## 🚀 Quick Start
 
-### Prerequisites
+**The absolute easiest way to get started:**
 
-- **Docker** and **Docker Compose** installed
-- **4GB+ RAM** recommended for optimal performance
-- **NVIDIA Container Toolkit** (for GPU acceleration on Linux)
-- **Local LLM Server** (LM Studio, Ollama, or similar) running on port 1234
-  - **OR** use our **containerized LM Studio** (see Containerized Setup below)
+### 1. Install Docker Desktop
+- **Windows/Mac**: [Download Docker Desktop](https://www.docker.com/products/docker-desktop)
+- **Linux**: Follow [official Docker installation guide](https://docs.docker.com/engine/install/)
 
-### 1. Clone & Run
-
+### 2. Get MedraN
 ```bash
 git clone https://github.com/dralexlup/MedraN-Medical-Assistant.git
 cd MedraN-Medical-Assistant
+```
 
-# 🎆 SUPER EASY: Smart Docker launcher with automatic GPU detection
+### 3. Start MedraN (One Command!) ✨
+```bash
+./start-medran.sh
+```
+
+### 4. Open Your Browser
+Visit: **http://localhost:3000** 🎉
+
+---
+
+**That's it!** The startup script handles everything automatically:
+- ✅ Checks Docker installation
+- ✅ Detects GPU capabilities  
+- ✅ Downloads required models
+- ✅ Starts all services
+- ✅ Provides health checks
+- ✅ Opens browser (optional)
+
+### Advanced Usage (Optional)
+
+For manual control, you can still use the traditional commands:
+
+```bash
+# 🎆 Smart Docker launcher with automatic GPU detection
 ./docker-start.sh
 
-# OR specific setups:
 # Option A: Use external LLM server (LM Studio, Ollama, etc.)
 ./docker-start.sh  # Automatically detects GPU and adds appropriate compose files
 
 # Option B: Use containerized LM Studio with Google Gemma 3n-E4B (RECOMMENDED)
-./docker-start.sh -f docker-compose.lmstudio.yml  # Works with manual GPU compose files too
+./docker-start.sh -f docker-compose.lmstudio.yml
 
 # Manual docker compose (if you prefer):
 docker compose up --build -d
 ```
+
+### Prerequisites (Handled Automatically)
+- **Docker** and **Docker Compose** (checked by startup script)
+- **8GB+ RAM** recommended for optimal performance
+- **NVIDIA Container Toolkit** (auto-detected for GPU acceleration on Linux)
+- **Local LLM Server** (LM Studio, Ollama, etc.) OR containerized setup
 
 ## 🚀 Smart Docker Launcher
 
@@ -349,7 +375,22 @@ api:
    - GPU acceleration now automatic when available
    - OCR processing is CPU-intensive on CPU-only systems
 
-6. **Docker-start.sh script issues**
+6. **"Embedding dimension X does not match collection dimensionality Y" error**
+   - This occurs when switching between different embedding models
+   - **Automatic fix**: The startup script asks if you want to reset collections
+   - **Manual fix**: Run the collection clearing utility:
+     ```bash
+     # Start services first
+     ./docker-start.sh
+     
+     # Clear collections
+     docker exec -it medran-api python clear_collections.py
+     
+     # Restart API
+     docker restart medran-api
+     ```
+
+7. **Docker-start.sh script issues**
    - **"NVIDIA Docker runtime not detected"**: Install `nvidia-container-toolkit` package
    - **"Usage: docker compose [OPTIONS] COMMAND"**: Use the fixed version with automatic `up` command
    - **"service has neither an image nor a build context"**: Make sure to specify compose files correctly with `-f`

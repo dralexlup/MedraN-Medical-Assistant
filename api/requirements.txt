@@ -13,10 +13,8 @@ beautifulsoup4==4.12.3
 trafilatura==1.6.3
 Pillow==10.4.0
 
-# embeddings (text + image)
+# embeddings (text + image) - Latest PyTorch with CUDA support
 sentence-transformers==3.0.1
-torch==2.3.1
-torchvision==0.18.1
 transformers==4.45.0
 
 # OCR and document preprocessing

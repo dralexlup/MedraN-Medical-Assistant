@@ -16,11 +16,34 @@ def _get_client():
 def _get_embed_model():
     global _mem_embed
     if _mem_embed is None:
-        _mem_embed = SentenceTransformer(settings.embedding_model)
+        # Use device detection for consistency
+        import torch
+        import os
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            device = "cpu"
+        _mem_embed = SentenceTransformer(settings.embedding_model, device=device)
+        print(f"✅ Loaded memory embedding model on {device}")
     return _mem_embed
 
 def _mem_col(user_id: str):
-    return _get_client().get_or_create_collection(f"mem_{user_id}")
+    collection_name = f"mem_{user_id}"
+    try:
+        # Try to get existing collection
+        return _get_client().get_collection(collection_name)
+    except Exception:
+        # Create new collection if it doesn't exist
+        model = _get_embed_model()
+        sample_embedding = model.encode(["test"], normalize_embeddings=True)[0]
+        embedding_dim = len(sample_embedding)
+        print(f"✅ Creating memory collection for {user_id} with dimension {embedding_dim}")
+        return _get_client().create_collection(
+            name=collection_name,
+            metadata={"dimension": embedding_dim, "hnsw:space": "cosine"}
+        )
 
 def remember(user_id: str, role: str, text: str):
     col = _mem_col(user_id)

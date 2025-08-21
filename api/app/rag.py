@@ -60,13 +60,43 @@ def _get_img_model():
 def _get_text_col():
     global _text_col
     if _text_col is None:
-        _text_col = _get_client().get_or_create_collection("text_chunks")
+        # Get embedding model dimension to ensure compatibility
+        model = _get_txt_model()
+        sample_embedding = model.encode(["test"], normalize_embeddings=True)[0]
+        embedding_dim = len(sample_embedding)
+        print(f"✅ Text embedding dimension: {embedding_dim}")
+        
+        try:
+            # Try to get existing collection
+            _text_col = _get_client().get_collection("text_chunks")
+        except Exception:
+            # Create new collection if it doesn't exist
+            _text_col = _get_client().create_collection(
+                name="text_chunks",
+                metadata={"dimension": embedding_dim, "hnsw:space": "cosine"}
+            )
+            print(f"✅ Created new text collection with dimension {embedding_dim}")
     return _text_col
 
 def _get_img_col():
     global _img_col
     if _img_col is None:
-        _img_col = _get_client().get_or_create_collection("image_chunks")
+        # Get embedding model dimension to ensure compatibility
+        model = _get_img_model()
+        sample_embedding = model.encode(["test"], normalize_embeddings=True)[0]
+        embedding_dim = len(sample_embedding)
+        print(f"✅ Image embedding dimension: {embedding_dim}")
+        
+        try:
+            # Try to get existing collection
+            _img_col = _get_client().get_collection("image_chunks")
+        except Exception:
+            # Create new collection if it doesn't exist
+            _img_col = _get_client().create_collection(
+                name="image_chunks",
+                metadata={"dimension": embedding_dim, "hnsw:space": "cosine"}
+            )
+            print(f"✅ Created new image collection with dimension {embedding_dim}")
     return _img_col
 
 def upsert_text(doc_id, title, page, section, chunks):
